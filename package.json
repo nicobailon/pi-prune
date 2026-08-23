@@ -1,0 +1,19 @@
+{
+  "name": "pi-prune",
+  "version": "0.1.0",
+  "description": "Manual Pi extension for compacting old tool results with /prune.",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}
