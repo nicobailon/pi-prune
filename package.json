@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Manual Pi extension for compacting old tool results with /prune.",
   "type": "module",
+  "scripts": {
+    "test": "node --test test/summarize.test.ts"
+  },
   "keywords": [
     "pi-package"
   ],
