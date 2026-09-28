@@ -1,4 +1,5 @@
-import { complete, type TextContent } from "@earendil-works/pi-ai";
+import { randomUUID } from "node:crypto";
+import type { TextContent } from "@earendil-works/pi-ai";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { ToolCallRecord } from "./types.ts";
 
@@ -54,17 +55,16 @@ export async function summarizeToolResults(records: ToolCallRecord[], ctx: Exten
     throw new Error("No active model is selected for prune summarization.");
   }
 
-  const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
-  if (!auth.ok) {
-    throw new Error(`Prune summarization auth failed: ${auth.error}`);
-  }
-
   const serializedPayload = records.map(serializeRecord).join("\n\n---\n\n");
   const payload = serializedPayload.length > MAX_SERIALIZED_PAYLOAD_CHARS
     ? `${serializedPayload.slice(0, MAX_SERIALIZED_PAYLOAD_CHARS)}\n\n...[${serializedPayload.length - MAX_SERIALIZED_PAYLOAD_CHARS} serialized chars omitted by pi-prune to keep manual compaction responsive]`
     : serializedPayload;
   const modelMaxTokens = typeof ctx.model.maxTokens === "number" && ctx.model.maxTokens > 0 ? ctx.model.maxTokens : MAX_SUMMARY_TOKENS;
-  const response = await complete(
+  // Route through the model registry so extension-registered providers work and
+  // credentials are resolved at request time. Each summary is a one-shot request:
+  // give it its own session ID and skip prompt caching so it never shares state
+  // with the main conversation.
+  const response = await ctx.modelRegistry.complete(
     ctx.model,
     {
       systemPrompt: SYSTEM_PROMPT,
@@ -82,10 +82,10 @@ export async function summarizeToolResults(records: ToolCallRecord[], ctx: Exten
       ],
     },
     {
-      apiKey: auth.apiKey,
-      headers: auth.headers,
       maxTokens: Math.min(MAX_SUMMARY_TOKENS, modelMaxTokens),
       signal,
+      sessionId: randomUUID(),
+      cacheRetention: "none",
     },
   );
 
